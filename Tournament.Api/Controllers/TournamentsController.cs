@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Tournament.Data.Data;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using AutoMapper;
+using Tournament.Core.Dto;
 
 namespace Tournament.Api.Controllers
 {
@@ -16,17 +18,19 @@ namespace Tournament.Api.Controllers
     public class TournamentsController : ControllerBase
     {
         private readonly IUoW _uoW;
+        private readonly IMapper _mapper;
         private readonly TournamentApiContext _context;
 
-        public TournamentsController(TournamentApiContext context, IUoW uoW)
+        public TournamentsController(TournamentApiContext context, IUoW uoW, IMapper mapper)
         {
             _context = context;
             _uoW = uoW;
+            _mapper = mapper;
         }
 
         // GET: api/Tournaments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Tournaments>>> GetTournaments()
+        public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournaments()
         {
             var tournaments = await _uoW.TournamentRepository.GetAllAsync();
             return Ok(tournaments);
@@ -34,7 +38,7 @@ namespace Tournament.Api.Controllers
 
         // GET: api/Tournaments/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Tournaments>> GetTournaments(int id)
+        public async Task<ActionResult<TournamentDto>> GetTournaments(int id)
         {
             var tournaments = await _uoW.TournamentRepository.GetAsync(id);
 
@@ -43,24 +47,28 @@ namespace Tournament.Api.Controllers
                 return NotFound();
             }
 
-            return Ok(tournaments);
+            var tournamentsDto = _mapper.Map<TournamentDto>(tournaments);
+
+            return Ok(tournamentsDto);
         }
 
         // PUT: api/Tournaments/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTournaments(int id, Tournaments tournaments)
+        public async Task<IActionResult> PutTournaments(int id, TournamentDto tournamentsDto)
         {
-            if (id != tournaments.Id)
+            if (id != tournamentsDto.Id)
             {
                 return BadRequest();
             }
 
             try
             {
+                var tournaments = _mapper.Map<Tournaments>(tournamentsDto);
                 _uoW.TournamentRepository.Update(tournaments);
 
                 await _uoW.CompleteAsync();
+                return Ok(tournamentsDto);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -80,12 +88,15 @@ namespace Tournament.Api.Controllers
         // POST: api/Tournaments
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Tournaments>> PostTournaments(Tournaments tournaments)
+        public async Task<ActionResult<TournamentDto>> PostTournaments(TournamentDto tournamentsDto)
         {
+            var tournaments = _mapper.Map<Tournaments>(tournamentsDto);
             _uoW.TournamentRepository.Add(tournaments);
             await _uoW.CompleteAsync();
 
-            return CreatedAtAction("GetTournaments", new { id = tournaments.Id }, tournaments);
+            var newTournamentsDto = _mapper.Map<Tournaments>(tournaments);
+
+            return CreatedAtAction("GetTournaments", new { id = tournamentsDto.Id }, newTournamentsDto);
         }
 
         // DELETE: api/Tournaments/5
