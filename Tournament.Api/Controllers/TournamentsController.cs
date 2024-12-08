@@ -61,6 +61,10 @@ namespace Tournament.Api.Controllers
             {
                 return BadRequest();
             }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             try
             {
@@ -78,11 +82,13 @@ namespace Tournament.Api.Controllers
                 }
                 else
                 {
-                    throw;
+                    return StatusCode(500, "A concurrency error occurred.");
                 }
             }
-
-            return NoContent();
+            catch (Exception)
+            {
+                return StatusCode(500, "An error occurred while updating the tournament.");
+            }
         }
 
         // POST: api/Tournaments
@@ -90,13 +96,26 @@ namespace Tournament.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<TournamentDto>> PostTournaments(TournamentDto tournamentsDto)
         {
-            var tournaments = _mapper.Map<Tournaments>(tournamentsDto);
-            _uoW.TournamentRepository.Add(tournaments);
-            await _uoW.CompleteAsync();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            var newTournamentsDto = _mapper.Map<Tournaments>(tournaments);
+            try
+            {
+                var tournaments = _mapper.Map<Tournaments>(tournamentsDto);
+                _uoW.TournamentRepository.Add(tournaments);
+                await _uoW.CompleteAsync();
 
-            return CreatedAtAction("GetTournaments", new { id = tournamentsDto.Id }, newTournamentsDto);
+                var newTournamentsDto = _mapper.Map<Tournaments>(tournaments);
+
+                return CreatedAtAction("GetTournaments", new { id = tournamentsDto.Id }, newTournamentsDto);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "An error occurred while saving the tournament.");
+            }
+
         }
 
         // DELETE: api/Tournaments/5
@@ -109,10 +128,19 @@ namespace Tournament.Api.Controllers
                 return NotFound();
             }
 
-            _uoW.TournamentRepository.Remove(tournaments);
-            await _uoW.CompleteAsync();
+            try
+            {
+                _uoW.TournamentRepository.Remove(tournaments);
+                await _uoW.CompleteAsync();
 
-            return NoContent();
+                var deletedDto = _mapper.Map<TournamentDto>(tournaments);
+
+                return Ok(deletedDto);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "An error occurred while deleting the tournament.");
+            }
         }
 
         private bool TournamentsExists(int id)

@@ -61,6 +61,10 @@ namespace Tournament.Api.Controllers
             {
                 return BadRequest();
             }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             try
             {
@@ -72,17 +76,19 @@ namespace Tournament.Api.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!GameExists(id))
+                if (GameExists(id))
                 {
                     return NotFound();
                 }
                 else
                 {
-                    throw;
+                    return StatusCode(500, "A concurrency error occurred.");
                 }
             }
-
-            return NoContent();
+            catch (Exception)
+            {
+                return StatusCode(500, "An error occurred while updating the game.");
+            }
         }
 
         // POST: api/Games
@@ -90,13 +96,24 @@ namespace Tournament.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<GameDto>> PostGame(GameDto gameDto)
         {
-            var game = _mapper.Map<Game>(gameDto);
-            _uoW.GameRepository.Add(game);
-            await _uoW.CompleteAsync();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var game = _mapper.Map<Game>(gameDto);
+                _uoW.GameRepository.Add(game);
+                await _uoW.CompleteAsync();
 
-            var newGameDto = _mapper.Map<Game>(game);
+                var newGameDto = _mapper.Map<Game>(game);
 
-            return CreatedAtAction("GetTournaments", new { id = gameDto.Id }, newGameDto);
+                return CreatedAtAction("GetTournaments", new { id = gameDto.Id }, newGameDto);
+            }
+            catch (Exception) 
+            {
+                return StatusCode(500, "An error occurred while saving the game.");
+            }
         }
 
         // DELETE: api/Games/5
@@ -109,10 +126,19 @@ namespace Tournament.Api.Controllers
                 return NotFound();
             }
 
-            _uoW.GameRepository.Remove(game);
-            await _uoW.CompleteAsync();
+            try
+            {
+                _uoW.GameRepository.Remove(game);
+                await _uoW.CompleteAsync();
 
-            return NoContent();
+                var deletedGameDto = _mapper.Map<GameDto>(game);
+
+                return Ok(deletedGameDto);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "An error occurred while deleting the game.");
+            }
         }
 
         private bool GameExists(int id)
