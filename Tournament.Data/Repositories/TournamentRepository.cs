@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
 using Tournament.Data.Data;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tournament.Data.Repositories
 {
@@ -33,10 +34,18 @@ namespace Tournament.Data.Repositories
         {
             return await _context.Tournaments.ToListAsync();
         }
+        public async Task<IEnumerable<Tournaments>> GetAllAsyncIncludeGames()
+        {
+            return await _context.Tournaments.Include("Games").ToListAsync();
+        }
 
         public async Task<Tournaments> GetAsync(int id)
         {
             return await _context.Tournaments.FindAsync(id);
+        }
+        public async Task<Tournaments> GetAsyncIncludeGames(int id)
+        {
+            return await _context.Tournaments.Include("Games").Where(t => t.Id == id).FirstAsync();
         }
 
         public void Remove(Tournaments tournaments)

@@ -31,17 +31,34 @@ namespace Tournament.Api.Controllers
 
         // GET: api/Tournaments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournaments()
+        public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournaments([FromQuery] bool games = false)
         {
-            var tournaments = await _uoW.TournamentRepository.GetAllAsync();
+            IEnumerable<Tournaments> tournaments = null;
+            if (games)
+            {
+                tournaments = await _uoW.TournamentRepository.GetAllAsyncIncludeGames();
+            }
+            else
+            {
+                tournaments = await _uoW.TournamentRepository.GetAllAsync();
+            }
+
             return Ok(tournaments);
         }
 
         // GET: api/Tournaments/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<TournamentDto>> GetTournaments(int id)
+        public async Task<ActionResult<TournamentDto>> GetTournaments(int id, [FromQuery] bool games = false)
         {
-            var tournaments = await _uoW.TournamentRepository.GetAsync(id);
+            Tournaments tournaments = new Tournaments();
+            if (games)
+            {
+                tournaments = await _uoW.TournamentRepository.GetAsyncIncludeGames(id);
+            }
+            else
+            {
+                tournaments = await _uoW.TournamentRepository.GetAsync(id);
+            }
 
             if (tournaments == null)
             {

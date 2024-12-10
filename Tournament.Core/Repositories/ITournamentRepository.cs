@@ -10,7 +10,9 @@ namespace Tournament.Core.Repositories
     public interface ITournamentRepository
     {
         Task<IEnumerable<Tournaments>> GetAllAsync();
+        Task<IEnumerable<Tournaments>> GetAllAsyncIncludeGames();
         Task<Tournaments> GetAsync(int id);
+        Task<Tournaments> GetAsyncIncludeGames(int id);
         Task<bool> AnyAsync(int id);
         void Add(Tournaments tournaments);
         void Update(Tournaments tournaments);
